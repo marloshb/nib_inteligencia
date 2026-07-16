@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plataforma NIB — Gêmeo Digital de Cadeias Produtivas Estratégicas</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+:root{--bg:#0e1420;--bg2:#131b2a;--panel:#182238;--panel2:#1e2a44;--line:#26344f;--txt:#e8eef8;--mut:#8ea3c0;
+--blue:#3b82f6;--cyan:#22d3ee;--green:#22c55e;--orange:#f59e0b;--red:#ef4444;--purple:#a78bfa;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:14px/1.45 "Segoe UI",Roboto,Arial,sans-serif;overflow:hidden}
+#app{display:flex;height:100vh}
+/* SIDEBAR */
+#sidebar{width:232px;min-width:232px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:600}
+.logo{padding:16px 14px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.logo .mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#22d3ee);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.logo b{font-size:15px;display:block}.logo small{color:var(--mut);font-size:10.5px;display:block}
+nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-sec{font-size:10px;letter-spacing:1.2px;color:#5b6f92;padding:12px 16px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 14px;margin:1px 8px;border-radius:8px;cursor:pointer;color:#c3d0e5;font-size:13px;border-left:3px solid transparent}
+.nav-item:hover{background:#1c2740}
+.nav-item.active{background:#1d2c4d;color:#fff;border-left:3px solid var(--blue)}
+.nav-item .ic{width:18px;text-align:center}
+.nav-item .pill{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;font-size:10px;padding:1px 7px;font-weight:700}
+.envtag{padding:10px 14px;border-top:1px solid var(--line);font-size:10.5px;color:var(--mut)}
+.envtag .dot{color:var(--green)}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:500}
+.search{flex:0 1 380px;background:#0f1626;border:1px solid var(--line);border-radius:8px;padding:7px 12px;color:var(--mut);font-size:12.5px;display:flex;gap:8px;align-items:center}
+.search input{background:none;border:none;outline:none;color:var(--txt);flex:1;font-size:12.5px}
+.chainsel{background:#0f1626;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:7px 10px;font-size:12.5px}
+.tb-sp{flex:1}
+.tbtn{position:relative;background:#0f1626;border:1px solid var(--line);border-radius:8px;padding:7px 11px;color:#c3d0e5;cursor:pointer;font-size:13px}
+.tbtn:hover{background:#1c2740}
+.tbtn .b{position:absolute;top:-5px;right:-5px;background:var(--red);border-radius:9px;font-size:9.5px;padding:1px 5px;font-weight:700;color:#fff}
+.tbtn.sim{background:linear-gradient(135deg,#7c2d12,#b45309);border-color:#b45309;color:#fff;font-weight:600}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#22d3ee);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;cursor:pointer}
+.who{font-size:11px;line-height:1.2;color:var(--mut)}.who b{color:var(--txt);font-size:12px;display:block}
+#content{flex:1;overflow-y:auto;padding:18px 20px;scroll-behavior:smooth}
+/* GRID / CARDS */
+.pagehead{display:flex;align-items:flex-end;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.pagehead h1{font-size:19px}
+.pagehead .sub{color:var(--mut);font-size:12px}
+.pagehead .acts{margin-left:auto;display:flex;gap:8px}
+.btn{background:var(--blue);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:#c3d0e5}
+.btn.grn{background:var(--green)}.btn.org{background:var(--orange);color:#1a1204}.btn.red{background:var(--red)}
+.btn.sm{padding:4px 10px;font-size:11px;border-radius:6px}
+.grid{display:grid;gap:14px}
+.g6{grid-template-columns:repeat(6,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h3{font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card h3 .r{margin-left:auto;font-size:11px;color:var(--blue);cursor:pointer;font-weight:400}
+.kpi .v{font-size:22px;font-weight:800;margin:2px 0}
+.kpi .l{font-size:11px;color:var(--mut)}
+.kpi .d{font-size:11px;font-weight:700}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--orange)}
+.spark{height:30px;margin-top:6px}
+/* TABLES */
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:var(--mut);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid #1f2b45}
+tr.click:hover{background:#1c2740;cursor:pointer}
+.tag{display:inline-block;padding:2px 9px;border-radius:11px;font-size:10.5px;font-weight:700}
+.t-red{background:#3b1520;color:#fda4af}.t-org{background:#3a2a10;color:#fcd34d}.t-grn{background:#0f2d1d;color:#86efac}
+.t-blu{background:#152747;color:#93c5fd}.t-gry{background:#242f47;color:#aebcd6}.t-pur{background:#2a2050;color:#c4b5fd}
+.bar{height:7px;background:#243252;border-radius:4px;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;border-radius:4px}
+/* LISTS */
+.alert-it{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid #1f2b45;align-items:flex-start}
+.alert-it:last-child{border:none}
+.sev{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none}
+.s-red{background:var(--red);box-shadow:0 0 8px var(--red)}.s-org{background:var(--orange)}.s-yel{background:#eab308}.s-blu{background:var(--blue)}
+.alert-it b{font-size:12.5px;display:block}
+.alert-it small{color:var(--mut);font-size:11px}
+.tl{position:relative;padding-left:18px}
+.tl:before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:#26344f}
+.tl-it{position:relative;padding:6px 0 6px 8px}
+.tl-it:before{content:"";position:absolute;left:-17px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--blue)}
+.tl-it.red:before{background:var(--red)}.tl-it.grn:before{background:var(--green)}.tl-it.org:before{background:var(--orange)}
+.tl-it b{font-size:12.5px}.tl-it small{color:var(--mut);display:block;font-size:11px}
+/* MAPS */
+.map{border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.leaflet-container{background:#0a0f1a;font:inherit}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel2);color:var(--txt)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mut);margin-top:8px}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:-1px}
+.layers{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:#0f1626;color:#c3d0e5;border-radius:16px;padding:4px 12px;font-size:11.5px;cursor:pointer}
+.chip.on{background:#1d2c4d;border-color:var(--blue);color:#fff}
+/* MATRIZ RISCO */
+.matrix{display:grid;grid-template-columns:auto repeat(5,1fr);gap:4px;font-size:11px}
+.mx{aspect-ratio:1.6;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;cursor:pointer;color:#0b1220}
+.mxl{display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:10px;text-align:center}
+/* KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kcol{background:#121a2c;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:200px}
+.kcol h4{font-size:11.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex}
+.kcol h4 span{margin-left:auto;background:#243252;border-radius:9px;padding:0 8px;font-size:10.5px;color:#c3d0e5}
+.kcard{background:var(--panel2);border:1px solid #2c3c60;border-radius:8px;padding:9px;margin-bottom:8px;cursor:pointer}
+.kcard b{font-size:12px;display:block;margin-bottom:4px}
+.kcard small{color:var(--mut);font-size:10.5px}
+.kfoot{display:flex;gap:6px;margin-top:6px;align-items:center}
+.kfoot .av{width:20px;height:20px;border-radius:50%;background:#4f46e5;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700}
+/* GANTT */
+.gantt{font-size:11.5px}
+.grow{display:grid;grid-template-columns:190px 1fr;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #1f2b45}
+.gtrack{height:16px;background:#131b2e;border-radius:4px;position:relative}
+.gbar{position:absolute;top:2px;bottom:2px;border-radius:4px;font-size:9.5px;display:flex;align-items:center;padding:0 6px;color:#08101f;font-weight:700;white-space:nowrap;overflow:hidden}
+/* AGENTES */
+.agcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative}
+.agcard .st{position:absolute;top:14px;right:14px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:10px}
+.agcard h4{font-size:13.5px;margin-bottom:2px;padding-right:70px}
+.agcard .fn{color:var(--mut);font-size:11.5px;margin-bottom:10px}
+.agstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.agstats div{background:#121a2c;border-radius:7px;padding:6px;text-align:center}
+.agstats b{display:block;font-size:15px}
+.agstats small{color:var(--mut);font-size:9.5px}
+.agrec{background:#121a2c;border-left:3px solid var(--cyan);border-radius:6px;padding:7px 9px;font-size:11.5px;color:#c9d6ec;margin-bottom:10px}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:5px;animation:pu 1.6s infinite}
+@keyframes pu{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+/* COPILOT */
+#copilot{width:0;min-width:0;background:var(--bg2);border-left:1px solid var(--line);display:flex;flex-direction:column;transition:.25s;overflow:hidden}
+#copilot.open{width:330px;min-width:330px}
+.cop-h{padding:13px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px}
+.cop-h .x{margin-left:auto;cursor:pointer;color:var(--mut)}
+.cop-b{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:9px 11px;border-radius:11px;font-size:12.5px;line-height:1.5}
+.msg.ai{background:var(--panel2);border:1px solid #2c3c60;align-self:flex-start;white-space:pre-line}
+.msg.us{background:var(--blue);align-self:flex-end}
+.cop-f{padding:10px;border-top:1px solid var(--line);display:flex;gap:8px}
+.cop-f input{flex:1;background:#0f1626;border:1px solid var(--line);border-radius:8px;padding:8px 11px;color:var(--txt);outline:none;font-size:12.5px}
+.sugg{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 10px}
+.sugg span{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:10.5px;color:#9fb2d3;cursor:pointer}
+/* MODAL / DRAWER */
+#ovl{position:fixed;inset:0;background:rgba(4,8,16,.66);display:none;z-index:900}
+#drawer{position:fixed;top:0;right:-560px;width:540px;max-width:94vw;bottom:0;background:var(--bg2);border-left:1px solid var(--line);z-index:950;transition:.25s;display:flex;flex-direction:column}
+#drawer.open{right:0}
+.dr-h{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.dr-h .x{margin-left:auto;cursor:pointer;color:var(--mut);font-size:18px}
+.dr-b{flex:1;overflow-y:auto;padding:16px 18px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+.tab{padding:7px 13px;font-size:12px;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:#fff;border-color:var(--blue)}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:12.5px;margin-bottom:14px}
+.kv dt{color:var(--mut)}
+/* TOASTS */
+#toasts{position:fixed;bottom:18px;right:18px;z-index:1200;display:flex;flex-direction:column;gap:9px;max-width:380px}
+.toast{background:var(--panel2);border:1px solid #2c3c60;border-left:4px solid var(--blue);border-radius:9px;padding:11px 13px;font-size:12.5px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:ti .3s}
+.toast.red{border-left-color:var(--red)}.toast.grn{border-left-color:var(--green)}.toast.org{border-left-color:var(--orange)}.toast.cy{border-left-color:var(--cyan)}
+.toast b{display:block;font-size:12.5px}.toast small{color:var(--mut)}
+@keyframes ti{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+/* DROPDOWN ALERTS */
+#adrop{position:fixed;top:58px;right:190px;width:360px;background:var(--panel2);border:1px solid #2c3c60;border-radius:12px;z-index:800;display:none;box-shadow:0 14px 40px rgba(0,0,0,.55);max-height:70vh;overflow:auto}
+#adrop.h{padding:0}
+#adrop .hd{padding:11px 14px;border-bottom:1px solid var(--line);font-weight:700;font-size:13px}
+.checkitem{display:flex;gap:9px;padding:7px 4px;border-bottom:1px solid #1f2b45;font-size:12.5px;align-items:center}
+.checkitem input{accent-color:var(--green)}
+.small-mut{font-size:11px;color:var(--mut)}
+.footer-note{margin-top:16px;color:#5b6f92;font-size:10.5px;text-align:center;padding-bottom:8px}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#26344f;border-radius:5px}::-webkit-scrollbar-track{background:transparent}
+@media(max-width:1200px){.g6{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.kanban{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="app">
+<aside id="sidebar">
+  <div class="logo"><div class="mark">NIB</div><div><b>Plataforma NIB</b><small>Gêmeo Digital de Cadeias</small></div></div>
+  <nav id="nav"></nav>
+  <div class="envtag"><span class="dot">●</span> PRODUÇÃO · v4.2.1 · SLA 99,97%<br>Última sincronização: há 2 min</div>
+</aside>
+<div id="main">
+  <header id="topbar">
+    <div class="search">🔍 <input id="gsearch" placeholder="Buscar ativo, empresa, NCM, caso, projeto… (ex.: MAP, WF-2027)"></div>
+    <select class="chainsel" id="chainsel" title="Cadeia estratégica">
+      <option>⛓ Cadeia: Fertilizantes</option><option>⛓ Cadeia: Semicondutores</option>
+      <option>⛓ Cadeia: Fármacos / IFA</option><option>⛓ Cadeia: Baterias & Minerais Críticos</option>
+    </select>
+    <div class="tb-sp"></div>
+    <button class="tbtn sim" onclick="runSimulation()">▶ Simular ruptura de fornecedor</button>
+    <button class="tbtn" onclick="toggleAlerts()" title="Alertas">🔔<span class="b" id="abadge">7</span></button>
+    <button class="tbtn" onclick="toggleCopilot()" title="Copiloto IA">✨ Copiloto</button>
+    <button class="tbtn" title="Ajuda">❔</button>
+    <div class="who"><b>Marina Duarte</b>Analista de Cadeias · SDIC</div>
+    <div class="avatar">MD</div>
+  </header>
+  <main id="content"></main>
+</div>
+<aside id="copilot">
+  <div class="cop-h"><span style="font-size:17px">✨</span><b>Copiloto NIB</b><span class="tag t-grn" style="margin-left:6px">online</span><span class="x" onclick="toggleCopilot()">✕</span></div>
+  <div class="cop-b" id="copbody">
+    <div class="msg ai">Olá, Marina. Estou monitorando a cadeia de Fertilizantes: 7 alertas ativos, 2 críticos. A dependência externa de MAP segue em 82% (Rússia+China). Como posso ajudar?</div>
+  </div>
+  <div class="sugg">
+    <span onclick="askCop(this.textContent)">Qual o maior risco hoje?</span>
+    <span onclick="askCop(this.textContent)">Resumo executivo da semana</span>
+    <span onclick="askCop(this.textContent)">Fornecedores alternativos de MAP</span>
+  </div>
+  <div class="cop-f"><input id="copin" placeholder="Pergunte sobre a cadeia…" onkeydown="if(event.key==='Enter')askCop(this.value)"><button class="btn" onclick="askCop(document.getElementById('copin').value)">➤</button></div>
+</aside>
+</div>
+<div id="adrop"></div>
+<div id="ovl" onclick="closeDrawer()"></div>
+<div id="drawer"><div class="dr-h" id="drh"></div><div class="dr-b" id="drb"></div></div>
+<div id="toasts"></div>
+<script>
+/* ================= DADOS SIMULADOS ================= */
+const ATIVOS=[
+ {id:"AT-001",nome:"Planta Química Norte — Unidade Uberaba",tipo:"Planta industrial",uf:"MG",cid:"Uberaba",lat:-19.75,lng:-47.93,status:"Operacional",cap:"1,2 Mt/ano MAP",util:87,risco:"Alto",crit:92,produtos:"MAP, SSP",insumos:"Rocha fosfática, amônia, enxofre",cnpj:"12.345.678/0001-90",emprego:1840,energia:"142 GWh/ano",esg:74,dep:"82% insumo importado"},
+ {id:"AT-002",nome:"Complexo Nitrogenados Sergipe (FAFEN-SE)",tipo:"Planta industrial",uf:"SE",cid:"Laranjeiras",lat:-10.80,lng:-37.17,status:"Operação parcial",cap:"650 kt/ano ureia",util:58,risco:"Médio",crit:78,produtos:"Ureia, amônia",insumos:"Gás natural",cnpj:"23.456.789/0001-01",emprego:920,energia:"Gás: 1,1 Mm³/dia",esg:81,dep:"Gás nacional 64%"},
+ {id:"AT-003",nome:"Mina & Beneficiamento Catalão",tipo:"Mina",uf:"GO",cid:"Catalão",lat:-18.17,lng:-47.95,status:"Operacional",cap:"5,4 Mt/ano rocha",util:91,risco:"Baixo",crit:64,produtos:"Concentrado fosfático",insumos:"—",cnpj:"34.567.890/0001-12",emprego:1310,energia:"98 GWh/ano",esg:69,dep:"—"},
+ {id:"AT-004",nome:"Terminal Portuário TUP Paranaguá",tipo:"Terminal logístico",uf:"PR",cid:"Paranaguá",lat:-25.51,lng:-48.51,status:"Congestionado",cap:"11 Mt/ano granéis",util:96,risco:"Alto",crit:88,produtos:"Movimentação KCl/MAP",insumos:"—",cnpj:"45.678.901/0001-23",emprego:640,energia:"—",esg:66,dep:"Fila média 9,4 dias"},
+ {id:"AT-005",nome:"Misturadora Rio Verde",tipo:"Misturadora",uf:"GO",cid:"Rio Verde",lat:-17.79,lng:-50.92,status:"Operacional",cap:"2,1 Mt/ano NPK",util:73,risco:"Médio",crit:71,produtos:"NPK formulado",insumos:"MAP, KCl, ureia",cnpj:"56.789.012/0001-34",emprego:410,energia:"22 GWh/ano",esg:77,dep:"71% insumo importado"},
+ {id:"AT-006",nome:"Planta Potássio Autazes (projeto)",tipo:"Projeto greenfield",uf:"AM",cid:"Autazes",lat:-3.58,lng:-59.13,status:"Em implantação",cap:"2,4 Mt/ano KCl (prev.)",util:0,risco:"Médio",crit:81,produtos:"KCl (previsto)",insumos:"Silvinita",cnpj:"67.890.123/0001-45",emprego:2600,energia:"—",esg:62,dep:"Licenciamento em curso"},
+ {id:"AT-007",nome:"CD Agro Cascavel",tipo:"Centro de distribuição",uf:"PR",cid:"Cascavel",lat:-24.95,lng:-53.46,status:"Operacional",cap:"480 kt estocagem",util:64,risco:"Baixo",crit:52,produtos:"Distribuição NPK",insumos:"—",cnpj:"78.901.234/0001-56",emprego:180,energia:"6 GWh/ano",esg:83,dep:"—"},
+ {id:"AT-008",nome:"Terminal Itaqui — Corredor Norte",tipo:"Terminal logístico",uf:"MA",cid:"São Luís",lat:-2.57,lng:-44.37,status:"Operacional",cap:"7,5 Mt/ano granéis",util:71,risco:"Médio",crit:69,produtos:"Movimentação ureia/KCl",insumos:"—",cnpj:"89.012.345/0001-67",emprego:520,energia:"—",esg:79,dep:"—"}];
+const FORN=[
+ {id:"FX-01",nome:"PhosAgro (Rússia)",pais:"Rússia",lat:59.9,lng:30.3,insumo:"MAP/DAP",share:41,risco:"Crítico"},
+ {id:"FX-02",nome:"YunTianHua (China)",pais:"China",lat:24.9,lng:102.7,insumo:"MAP",share:23,risco:"Alto"},
+ {id:"FX-03",nome:"Nutrien (Canadá)",pais:"Canadá",lat:52.1,lng:-106.6,insumo:"KCl",share:31,risco:"Médio"},
+ {id:"FX-04",nome:"OCP (Marrocos)",pais:"Marrocos",lat:33.6,lng:-7.6,insumo:"Rocha fosfática",share:18,risco:"Médio"},
+ {id:"FX-05",nome:"Uralkali (Rússia)",pais:"Rússia",lat:59.4,lng:56.8,insumo:"KCl",share:27,risco:"Crítico"},
+ {id:"FX-06",nome:"QatarEnergy (Catar)",pais:"Catar",lat:25.3,lng:51.5,insumo:"Ureia",share:22,risco:"Baixo"}];
+let ALERTAS=[
+ {id:"AL-1041",sev:"red",t:"Concentração crítica: 82% do MAP importado de 2 países",o:"Agente de Dependência Crítica",tm:"há 26 min",st:"Aberto"},
+ {id:"AL-1040",sev:"red",t:"Fila > 9 dias no TUP Paranaguá — risco de desabastecimento safra",o:"Módulo Logística",tm:"há 1 h",st:"Em tratamento"},
+ {id:"AL-1039",sev:"org",t:"Capacidade declarada ≠ produção observada — Misturadora Rio Verde (-18%)",o:"Agente de Inconsistência",tm:"há 3 h",st:"Vistoria sugerida"},
+ {id:"AL-1038",sev:"org",t:"Projeto Autazes: marco de licenciamento com atraso de 45 dias",o:"Módulo Projetos",tm:"há 5 h",st:"Caso aberto"},
+ {id:"AL-1037",sev:"yel",t:"Alta de 14% no frete marítimo rota Báltico → Santos",o:"Integração AIS/Comex",tm:"ontem",st:"Monitorando"},
+ {id:"AL-1036",sev:"yel",t:"Divergência cadastral: 3 registros duplicados de fornecedor",o:"Agente de Conciliação",tm:"ontem",st:"Fila de validação"},
+ {id:"AL-1035",sev:"blu",t:"Boletim semanal da cadeia disponível para revisão",o:"Agente Executivo",tm:"ontem",st:"Novo"}];
+const PROJ=[
+ {id:"PJ-101",nome:"Expansão MAP Uberaba — Fase II",emp:"Planta Química Norte",uf:"MG",capex:2400,fase:"Obras",av:62,risco:"Médio",prazo:"dez/2027",fonte:"BNDES + próprio",sem:"org",ini:10,dur:55},
+ {id:"PJ-102",nome:"Projeto Potássio Autazes",emp:"Potássio do Brasil",uf:"AM",capex:12500,fase:"Licenciamento",av:34,risco:"Alto",prazo:"jun/2029",fonte:"Privado + Finep",sem:"red",ini:0,dur:80},
+ {id:"PJ-103",nome:"Retomada FAFEN-SE (nitrogenados)",emp:"Unigel/Petrobras",uf:"SE",capex:1800,fase:"Operação assistida",av:78,risco:"Médio",prazo:"mar/2026",fonte:"Próprio",sem:"org",ini:5,dur:35},
+ {id:"PJ-104",nome:"Duplicação acesso ferroviário Paranaguá",emp:"Rumo/Portos PR",uf:"PR",capex:950,fase:"Projeto executivo",av:22,risco:"Alto",prazo:"set/2028",fonte:"PPI",sem:"red",ini:20,dur:60},
+ {id:"PJ-105",nome:"Planta SSP Corredor Norte (Itaqui)",emp:"Fertilizantes MA",uf:"MA",capex:680,fase:"Estudo de viabilidade",av:15,risco:"Baixo",prazo:"—",fonte:"Em captação",sem:"grn",ini:30,dur:45},
+ {id:"PJ-106",nome:"Hub de blendagem Cascavel 4.0",emp:"CD Agro",uf:"PR",capex:210,fase:"Contratação",av:48,risco:"Baixo",prazo:"ago/2026",fonte:"Privado",sem:"grn",ini:15,dur:30}];
+let CASOS=[
+ {id:"WF-2027",t:"Ruptura potencial de MAP — plano de mitigação",tipo:"Risco de suprimento",resp:"M. Duarte",sla:"48h",pri:"Crítica",col:0,ag:"Despacho Assistido"},
+ {id:"WF-2026",t:"Vistoria de capacidade — Misturadora Rio Verde",tipo:"Inconsistência",resp:"Eq. Campo GO",sla:"5d",pri:"Alta",col:1,ag:"Vistoria Inteligente"},
+ {id:"WF-2025",t:"Gargalo TUP Paranaguá — janela de atracação",tipo:"Logística",resp:"C. Prado",sla:"72h",pri:"Alta",col:1,ag:"Cenários"},
+ {id:"WF-2024",t:"Atraso licenciamento Autazes — articulação",tipo:"Projeto",resp:"J. Ferreira",sla:"10d",pri:"Alta",col:2,ag:"Priorização"},
+ {id:"WF-2023",t:"Unificação cadastral fornecedores KCl",tipo:"Cadastro",resp:"D. Nunes",sla:"7d",pri:"Média",col:2,ag:"Conciliação"},
+ {id:"WF-2022",t:"Despacho: priorização carteira fosfatados",tipo:"Decisão",resp:"Dir. SDIC",sla:"—",pri:"Média",col:3,ag:"Executivo"}];
+const OS=[
+ {id:"OS-0771",ativo:"Misturadora Rio Verde (GO)",tipo:"Verificação de capacidade",data:"18/07/2026",insp:"R. Almeida",st:"Agendada",sug:"Agente de Vistoria"},
+ {id:"OS-0770",ativo:"TUP Paranaguá (PR)",tipo:"Inspeção operacional — pátio",data:"17/07/2026",insp:"L. Castro",st:"Em campo",sug:"Manual"},
+ {id:"OS-0769",ativo:"Planta Uberaba (MG)",tipo:"Conformidade ambiental",data:"14/07/2026",insp:"T. Sousa",st:"Parecer pendente",sug:"Agente de Vistoria"},
+ {id:"OS-0768",ativo:"Obra Autazes (AM)",tipo:"Aderência físico-financeira",data:"10/07/2026",insp:"Eq. Norte",st:"Concluída",sug:"Agente de Inconsistência"},
+ {id:"OS-0767",ativo:"CD Cascavel (PR)",tipo:"Estoque regulador",data:"08/07/2026",insp:"R. Almeida",st:"Concluída",sug:"Manual"}];
+const AGENTES=[
+ {n:"Agente de Conciliação de Entidades",fn:"Unifica registros de empresas, ativos e fornecedores",ev:12480,fila:14,tx:96,casos:31,rec:"3 registros duplicados de fornecedor de KCl — proposta de fusão com score 0,94 aguardando validação."},
+ {n:"Agente de Dependência Crítica",fn:"Calcula dependência externa e criticidade de insumos e rotas",ev:8931,fila:2,tx:91,casos:18,rec:"MAP: 82% concentrado em 2 origens. Recomendo ativar fornecedores alternativos (Marrocos/Arábia Saudita) e priorizar PJ-101."},
+ {n:"Agente de Inconsistência Operacional",fn:"Cruza dados declarados × evidências (imagens, sensores, produção)",ev:6204,fila:7,tx:88,casos:42,rec:"Rio Verde: produção observada 18% abaixo da capacidade declarada. Vistoria OS-0771 sugerida e agendada."},
+ {n:"Agente de Priorização de Projetos",fn:"Ranking multicritério de investimentos por impacto × urgência",ev:1873,fila:1,tx:93,casos:9,rec:"Reordenei a carteira: Autazes ↑ (dependência de KCl), acesso ferroviário Paranaguá ↑ (gargalo logístico)."},
+ {n:"Agente de Despacho Assistido",fn:"Minutas de despacho, encaminhamentos e pareceres",ev:3419,fila:5,tx:89,casos:57,rec:"Minuta pronta para WF-2027 (ruptura MAP): 3 providências, 2 responsáveis, prazo 48h. Aguardando revisão."},
+ {n:"Agente de Vistoria Inteligente",fn:"Checklists, rotas e análise de retorno de campo",ev:2210,fila:3,tx:94,casos:26,rec:"Checklist de 22 itens gerado para OS-0771; rota otimizada economiza 3h40 de deslocamento."},
+ {n:"Agente de Cenários",fn:"Simula rupturas, choques logísticos e tarifários",ev:944,fila:0,tx:87,casos:12,rec:"Cenário 'embargo Báltico 90d': queda de 11% na oferta de NPK no CO; mitigação via Itaqui recupera 6 p.p."},
+ {n:"Agente Executivo",fn:"Sínteses gerenciais, briefings e narrativas automatizadas",ev:5120,fila:1,tx:97,casos:8,rec:"Boletim semanal pronto: 7 alertas, 2 decisões pendentes, risco agregado subiu de 61 → 68 (Alto)."}];
+let EVENTOS=[
+ {c:"red",b:"Alerta vermelho AL-1041 — concentração de MAP",s:"Agente de Dependência · 14:22"},
+ {c:"org",b:"OS-0771 agendada para Misturadora Rio Verde",s:"Vistoria Inteligente · 13:58"},
+ {c:"",b:"Despacho aprovado no caso WF-2024 (Autazes)",s:"Dir. SDIC · 11:40"},
+ {c:"grn",b:"OS-0768 concluída — aderência 91% na obra Autazes",s:"Equipe Norte · 10:12"},
+ {c:"",b:"Integração Comex Stat: 41,2 mil registros processados",s:"ETL noturno · 06:00"},
+ {c:"org",b:"Fila TUP Paranaguá atingiu 9,4 dias",s:"Módulo Logística · ontem"}];
+const NCM=[{n:"3105.30 (MAP)",dep:82,v:"US$ 2,41 bi",orig:"Rússia 41% · China 23%"},{n:"3104.20 (KCl)",dep:94,v:"US$ 3,86 bi",orig:"Canadá 31% · Rússia 27%"},{n:"3102.10 (Ureia)",dep:76,v:"US$ 1,92 bi",orig:"Catar 22% · Argélia 19%"},{n:"2510.20 (Rocha fosf.)",dep:38,v:"US$ 0,44 bi",orig:"Marrocos 18%"},{n:"2814.10 (Amônia)",dep:61,v:"US$ 0,71 bi",orig:"Trinidad 33%"}];
+
+/* ================= INFRA ================= */
+let charts=[],maps=[],route="home";
+function money(v){return v>=1000?("R$ "+(v/1000).toFixed(1).replace('.',',')+" bi"):("R$ "+v+" mi")}
+function destroyViz(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[];maps.forEach(m=>{try{m.remove()}catch(e){}});maps=[];}
+function toast(t,s,c){const d=document.createElement('div');d.className='toast '+(c||'');d.innerHTML='<b>'+t+'</b><small>'+s+'</small>';document.getElementById('toasts').appendChild(d);setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),400)},6500)}
+function riskTag(r){return r==='Crítico'||r==='Alto'?'t-red':(r==='Médio'?'t-org':'t-grn')}
+function sevClass(s){return s==='red'?'s-red':s==='org'?'s-org':s==='yel'?'s-yel':'s-blu'}
+function barc(p){return p>85?'var(--red)':p>70?'var(--orange)':'var(--green)'}
+
+const MENU=[
+ ["OPERAÇÃO",[["home","🏠","Início — Centro de Comando"],["exec","📊","Visão Executiva"],["twin","🗺️","Gêmeo da Cadeia"]]],
+ ["CADEIA",[["ativos","🏭","Empresas & Ativos"],["comex","🚢","Comércio Exterior"],["log","🛣️","Logística & Infraestrutura"],["inv","💼","Investimentos & Projetos"]]],
+ ["GOVERNANÇA",[["risco","⚠️","Riscos & Alertas","7"],["fisc","📋","Fiscalização & Campo"],["wf","🔁","Workflows & Despachos","6"],["ag","🤖","Agentes de IA"],["rel","📄","Relatórios"]]],
+ ["SISTEMA",[["adm","⚙️","Administração"]]]];
+function renderNav(){document.getElementById('nav').innerHTML=MENU.map(([sec,items])=>'<div class="nav-sec">'+sec+'</div>'+items.map(([k,ic,l,b])=>'<div class="nav-item'+(route===k?' active':'')+'" onclick="go(\''+k+'\')"><span class="ic">'+ic+'</span>'+l+(b?'<span class="pill" id="pill-'+k+'">'+b+'</span>':'')+'</div>').join('')).join('')}
+function go(r){route=r;destroyViz();renderNav();VIEWS[r]?VIEWS[r]():VIEWS.home();document.getElementById('content').scrollTop=0}
+
+/* ================= COMPONENTES ================= */
+function kpi(l,v,d,cls,sid){return '<div class="card kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="d '+cls+'">'+d+'</div>'+(sid?'<div class="spark"><canvas id="'+sid+'"></canvas></div>':'')+'</div>'}
+function spark(id,data,color){const el=document.getElementById(id);if(!el)return;charts.push(new Chart(el,{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:color,borderWidth:2,pointRadius:0,fill:true,backgroundColor:color+'22',tension:.4}]},options:{plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}},maintainAspectRatio:false,responsive:true}}))}
+function alertList(arr){return arr.map(a=>'<div class="alert-it"><span class="sev '+sevClass(a.sev)+'"></span><div style="flex:1"><b>'+a.t+'</b><small>'+a.id+' · '+a.o+' · '+a.tm+'</small></div><span class="tag t-gry">'+a.st+'</span></div>').join('')}
+function darkTiles(m){L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OSM · © CARTO · Esri basemap simulado'}).addTo(m)}
+function dot(color,r){return {radius:r||8,fillColor:color,color:'#0b1220',weight:1.5,fillOpacity:.95}}
+function riskColor(r){return r==='Crítico'?'#ef4444':r==='Alto'?'#ef4444':r==='Médio'?'#f59e0b':'#22c55e'}
+function makeMap(id,center,zoom){const m=L.map(id,{zoomControl:true,attributionControl:false}).setView(center,zoom);darkTiles(m);maps.push(m);return m}
+function plotAtivos(m,click){ATIVOS.forEach(a=>{const mk=L.circleMarker([a.lat,a.lng],dot(riskColor(a.risco),9)).addTo(m);mk.bindTooltip('<b>'+a.nome+'</b><br>'+a.tipo+' · Risco '+a.risco);if(click)mk.on('click',()=>openAtivo(a.id))})}
+
+/* ================= VIEWS ================= */
+const VIEWS={};
+
+/* ---- HOME ---- */
+VIEWS.home=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Centro de Comando — Cadeia de Fertilizantes</h1><div class="sub">Situação em tempo quase real · qua, 16 jul 2026 · 13:55 BRT · <span class="tag t-red">Risco agregado: ALTO (68/100)</span></div></div>
+<div class="acts"><button class="btn ghost" onclick="go('rel')">📄 Boletim semanal</button><button class="btn" onclick="go('exec')">Abrir Visão Executiva</button></div></div>
+<div class="grid g6" style="margin-bottom:14px">
+ ${kpi("Ativos monitorados","1.284","+12 este mês","up","sp1")}
+ ${kpi("Dependência externa (NPK)","76%","▲ 3 p.p. vs 2025","dn","sp2")}
+ ${kpi("Alertas ativos","7","2 críticos","dn","sp3")}
+ ${kpi("Casos em workflow","23","6 nesta unidade","nt","sp4")}
+ ${kpi("CAPEX carteira","R$ 18,5 bi","6 projetos estruturantes","up","sp5")}
+ ${kpi("Agentes de IA ativos","8/8","41,2 mil eventos/dia","up","sp6")}
+</div>
+<div class="grid" style="grid-template-columns:1.7fr 1fr;margin-bottom:14px">
+ <div class="card"><h3>🗺️ Mapa operacional da cadeia <span class="r" onclick="go('twin')">abrir gêmeo completo →</span></h3>
+  <div id="homemap" class="map" style="height:340px"></div>
+  <div class="legend"><span><i style="background:#ef4444"></i>Risco alto/crítico</span><span><i style="background:#f59e0b"></i>Risco médio</span><span><i style="background:#22c55e"></i>Risco baixo</span><span><i style="background:#22d3ee"></i>Fornecedor externo</span><span style="margin-left:auto">Base geoespacial: ArcGIS (simulado)</span></div>
+ </div>
+ <div class="card"><h3>🔔 Alertas críticos <span class="r" onclick="go('risco')">torre de riscos →</span></h3><div id="homealerts">${alertList(ALERTAS.slice(0,5))}</div></div>
+</div>
+<div class="grid g3" style="margin-bottom:14px">
+ <div class="card"><h3>🤖 Agentes em atividade <span class="r" onclick="go('ag')">ver todos →</span></h3>
+  ${AGENTES.slice(0,4).map(a=>'<div class="alert-it"><span class="pulse"></span><div style="flex:1"><b>'+a.n.replace("Agente de ","").replace("Agente ","")+'</b><small>'+a.ev.toLocaleString('pt-BR')+' eventos · fila '+a.fila+' · acerto '+a.tx+'%</small></div></div>').join('')}
+ </div>
+ <div class="card"><h3>💼 Projetos em atenção <span class="r" onclick="go('inv')">carteira →</span></h3>
+  ${PROJ.filter(p=>p.sem!=='grn').map(p=>'<div class="alert-it"><span class="sev '+(p.sem==='red'?'s-red':'s-org')+'"></span><div style="flex:1"><b>'+p.nome+'</b><small>'+p.fase+' · avanço '+p.av+'% · '+money(p.capex)+'</small></div></div>').join('')}
+ </div>
+ <div class="card"><h3>✅ Minhas tarefas pendentes</h3>
+  <div class="checkitem"><input type="checkbox"><div><b>Revisar minuta de despacho — WF-2027</b><div class="small-mut">Agente de Despacho · prazo hoje 17h</div></div></div>
+  <div class="checkitem"><input type="checkbox"><div><b>Validar fusão cadastral (3 fornecedores KCl)</b><div class="small-mut">Agente de Conciliação · score 0,94</div></div></div>
+  <div class="checkitem"><input type="checkbox"><div><b>Aprovar checklist OS-0771 — Rio Verde</b><div class="small-mut">Vistoria Inteligente · 22 itens</div></div></div>
+  <div class="checkitem"><input type="checkbox" checked><div><b>Enviar briefing ministerial de terça</b><div class="small-mut">Concluído · 15/07</div></div></div>
+ </div>
+</div>
+<div class="grid g2">
+ <div class="card"><h3>🕒 Últimos eventos da plataforma</h3><div class="tl" id="hometl">${EVENTOS.map(e=>'<div class="tl-it '+e.c+'"><b>'+e.b+'</b><small>'+e.s+'</small></div>').join('')}</div></div>
+ <div class="card"><h3>✨ Resumo executivo do dia — Agente Executivo</h3>
+ <div class="agrec" style="font-size:12.5px;line-height:1.7">A cadeia de fertilizantes opera hoje com <b>risco agregado ALTO (68/100)</b>, puxado pela concentração de importação de MAP (82% em duas origens) e pela fila de 9,4 dias no TUP Paranaguá, que ameaça o abastecimento da janela de plantio. A retomada da FAFEN-SE avança (78%) e reduz exposição em nitrogenados. <b>Decisões pendentes:</b> despacho do plano de mitigação de MAP (WF-2027, prazo 48h) e articulação do licenciamento de Autazes. O Agente de Cenários indica que o redirecionamento de 30% dos volumes para Itaqui recupera 6 p.p. de oferta no Centro-Oeste.</div>
+ <div style="display:flex;gap:8px"><button class="btn sm" onclick="go('wf')">Ir para decisão</button><button class="btn sm ghost" onclick="toggleCopilot()">Perguntar ao Copiloto</button><button class="btn sm ghost" onclick="toast('Nota executiva gerada','PDF disponível em Relatórios > Notas do dia','grn')">Gerar nota executiva</button></div></div>
+</div>
+<div class="footer-note">Plataforma NIB · Gêmeo Digital de Cadeias Produtivas Estratégicas · mockup funcional de alta fidelidade · dados simulados para demonstração</div>`;
+spark('sp1',[1180,1195,1210,1222,1241,1260,1284],'#3b82f6');spark('sp2',[70,71,72,73,74,75,76],'#ef4444');
+spark('sp3',[3,5,4,6,5,8,7],'#f59e0b');spark('sp4',[18,20,19,22,25,24,23],'#f59e0b');
+spark('sp5',[14,15,15.8,16.4,17.1,18,18.5],'#22c55e');spark('sp6',[28,31,33,36,38,40,41],'#22d3ee');
+const m=makeMap('homemap',[-15.5,-51],4);plotAtivos(m,true);
+FORN.slice(0,4).forEach(f=>L.circleMarker([f.lat,f.lng],dot('#22d3ee',6)).addTo(m).bindTooltip(f.nome+' · '+f.insumo+' ('+f.share+'%)'));
+L.polyline([[59.9,30.3],[-25.5,-48.5]],{color:'#ef4444',weight:2,dashArray:'6 8',opacity:.7}).addTo(m);
+L.polyline([[33.6,-7.6],[-2.57,-44.37]],{color:'#22d3ee',weight:2,dashArray:'6 8',opacity:.6}).addTo(m);
+};
+
+/* ---- VISÃO EXECUTIVA ---- */
+VIEWS.exec=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Visão Executiva</h1><div class="sub">Leitura integrada da cadeia · recorte: Fertilizantes · Brasil · últimos 12 meses</div></div>
+<div class="acts"><select class="chainsel"><option>Território: Brasil</option><option>Centro-Oeste</option><option>MATOPIBA</option></select><select class="chainsel"><option>Período: 12 meses</option><option>24 meses</option><option>Safra 25/26</option></select><button class="btn ghost" onclick="toast('Briefing ministerial','Documento gerado e enviado ao gabinete (simulado)','grn')">📤 Briefing ministerial</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Produção nacional NPK","11,4 Mt","▲ 6,2% a/a","up")}
+ ${kpi("Importação de fertilizantes","US$ 9,3 bi","▼ 4,1% a/a","up")}
+ ${kpi("Dependências críticas","5 insumos","MAP · KCl · Ureia · Amônia · Enxofre","dn")}
+ ${kpi("Decisões pendentes","4","2 com prazo em 48h","nt")}
+</div>
+<div class="grid g2" style="margin-bottom:14px">
+ <div class="card"><h3>📈 Oferta nacional × importação (Mt)</h3><div style="height:250px"><canvas id="c1"></canvas></div></div>
+ <div class="card"><h3>🔀 Fluxo da cadeia — elo a elo (Sankey simplificado)</h3><div style="height:250px"><canvas id="c2"></canvas></div><div class="small-mut" style="margin-top:6px">Origem → insumo → processamento → distribuição → consumo (Mt, últimos 12m)</div></div>
+</div>
+<div class="grid g3">
+ <div class="card"><h3>🎯 Ranking de gargalos</h3><table><tr><th>#</th><th>Gargalo</th><th>Impacto</th></tr>
+ ${[["1","Dependência MAP (2 origens)","<span class='tag t-red'>Crítico</span>"],["2","Fila TUP Paranaguá","<span class='tag t-red'>Crítico</span>"],["3","Licenciamento Autazes","<span class='tag t-org'>Alto</span>"],["4","Malha ferroviária acesso portos Sul","<span class='tag t-org'>Alto</span>"],["5","Custo de gás p/ nitrogenados","<span class='tag t-org'>Médio</span>"]].map(r=>'<tr class="click"><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>').join('')}</table></div>
+ <div class="card"><h3>🗳️ Painel de decisão</h3>
+  ${[["WF-2027","Plano de mitigação de ruptura MAP","48h","red"],["WF-2024","Articulação licenciamento Autazes","10d","org"],["PJ-104","Aprovação de aporte — ferrovia Paranaguá","aguarda parecer","org"],["REL-88","Publicação do dossiê da cadeia","esta semana","blu"]].map(d=>'<div class="alert-it"><span class="sev s-'+d[3]+'"></span><div style="flex:1"><b>'+d[1]+'</b><small>'+d[0]+' · prazo: '+d[2]+'</small></div><button class="btn sm" onclick="go(\'wf\')">Decidir</button></div>').join('')}
+ </div>
+ <div class="card"><h3>📉 Comparativo temporal — risco agregado</h3><div style="height:210px"><canvas id="c3"></canvas></div></div>
+</div>`;
+charts.push(new Chart(document.getElementById('c1'),{type:'bar',data:{labels:['ago','set','out','nov','dez','jan','fev','mar','abr','mai','jun','jul'],datasets:[{label:'Produção nacional',data:[0.82,0.85,0.9,0.94,0.91,0.88,0.9,0.97,1.0,1.02,1.05,1.1],backgroundColor:'#22c55e'},{label:'Importação',data:[2.1,2.4,2.6,2.3,1.9,1.7,1.8,2.2,2.5,2.6,2.4,2.2],backgroundColor:'#3b82f6'}]},options:{plugins:{legend:{labels:{color:'#c3d0e5'}}},scales:{x:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+charts.push(new Chart(document.getElementById('c2'),{type:'bar',data:{labels:['Importado','Prod. nacional','Processamento','Misturadoras','Distribuição','Consumo agro'],datasets:[{label:'Mt',data:[26.1,11.4,31.2,29.8,28.4,27.9],backgroundColor:['#3b82f6','#22c55e','#22d3ee','#a78bfa','#f59e0b','#86efac']}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{ticks:{color:'#c3d0e5'},grid:{display:false}}},maintainAspectRatio:false}}));
+charts.push(new Chart(document.getElementById('c3'),{type:'line',data:{labels:['fev','mar','abr','mai','jun','jul'],datasets:[{label:'Risco agregado',data:[55,58,61,59,61,68],borderColor:'#ef4444',backgroundColor:'#ef444422',fill:true,tension:.35},{label:'Meta',data:[50,50,50,50,50,50],borderColor:'#22c55e',borderDash:[6,6],pointRadius:0}]},options:{plugins:{legend:{labels:{color:'#c3d0e5'}}},scales:{x:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{min:30,max:80,ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+};
+
+/* ---- GÊMEO DA CADEIA ---- */
+VIEWS.twin=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Gêmeo da Cadeia</h1><div class="sub">Visão de rede + geografia sincronizadas · clique em um nó ou marcador para abrir a Ficha 360°</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Simulação','Abra um nó e use “Gerar simulação” — ou rode a ruptura na barra superior.','cy')">🧪 Gerar simulação</button><button class="btn" onclick="toast('Elo cadastrado','Novo vínculo registrado na fila de validação do Agente de Conciliação.','grn')">+ Cadastrar elo</button></div></div>
+<div class="layers">
+ ${["Plantas industriais","Minas","Terminais & portos","Fornecedores externos","Fluxos de insumo","Corredores logísticos","Heatmap de criticidade","Projetos"].map((l,i)=>'<span class="chip'+(i<6?' on':'')+'" onclick="this.classList.toggle(\'on\');toast(\'Camada: '+l+'\',\'Visibilidade alternada no mapa (simulado).\',\'cy\')">'+l+'</span>').join('')}
+</div>
+<div class="grid" style="grid-template-columns:1.6fr 1fr">
+ <div class="card"><h3>🗺️ Mapa do gêmeo — território & fluxos</h3><div id="twinmap" class="map" style="height:480px"></div>
+ <div class="legend"><span><i style="background:#ef4444"></i>Crítico/Alto</span><span><i style="background:#f59e0b"></i>Médio</span><span><i style="background:#22c55e"></i>Baixo</span><span><i style="background:#22d3ee"></i>Fornecedor externo</span><span>— — fluxo de insumo</span></div></div>
+ <div class="card"><h3>🕸️ Grafo relacional da cadeia</h3><div id="graph" style="height:400px;background:#0f1626;border-radius:10px;border:1px solid var(--line)"></div>
+ <div class="small-mut" style="margin:8px 0 4px">Ficha resumida do nó selecionado:</div>
+ <div id="nodecard" class="agrec">Selecione um nó do grafo para ver o resumo, dependências a montante/jusante e ações.</div></div>
+</div>`;
+const m=makeMap('twinmap',[-10,-30],3);plotAtivos(m,true);
+FORN.forEach(f=>L.circleMarker([f.lat,f.lng],dot('#22d3ee',7)).addTo(m).bindTooltip('<b>'+f.nome+'</b><br>'+f.insumo+' · share '+f.share+'% · risco '+f.risco));
+[[FORN[0],ATIVOS[0]],[FORN[1],ATIVOS[0]],[FORN[2],ATIVOS[3]],[FORN[4],ATIVOS[3]],[FORN[3],ATIVOS[7]],[FORN[5],ATIVOS[7]]].forEach(([f,a])=>L.polyline([[f.lat,f.lng],[a.lat,a.lng]],{color:f.risco==='Crítico'?'#ef4444':'#22d3ee',weight:1.8,dashArray:'5 8',opacity:.65}).addTo(m));
+[[ATIVOS[2],ATIVOS[0]],[ATIVOS[0],ATIVOS[4]],[ATIVOS[3],ATIVOS[4]],[ATIVOS[4],ATIVOS[6]],[ATIVOS[1],ATIVOS[7]]].forEach(([a,b])=>L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{color:'#3b82f6',weight:2,opacity:.8}).addTo(m));
+const nodes=new vis.DataSet([
+ {id:1,label:"PhosAgro\n(RU)",group:"forn"},{id:2,label:"YunTianHua\n(CN)",group:"forn"},{id:3,label:"Nutrien\n(CA)",group:"forn"},
+ {id:4,label:"Mina Catalão",group:"mina"},{id:5,label:"Planta Uberaba\n(MAP)",group:"planta",aid:"AT-001"},{id:6,label:"FAFEN-SE\n(Ureia)",group:"planta",aid:"AT-002"},
+ {id:7,label:"TUP Paranaguá",group:"term",aid:"AT-004"},{id:8,label:"Itaqui",group:"term",aid:"AT-008"},
+ {id:9,label:"Misturadora\nRio Verde",group:"mist",aid:"AT-005"},{id:10,label:"CD Cascavel",group:"cd",aid:"AT-007"},{id:11,label:"Agro\nCentro-Oeste",group:"cli"},{id:12,label:"Agro\nMATOPIBA",group:"cli"}]);
+const edges=new vis.DataSet([{from:1,to:5,color:'#ef4444',width:3,label:'MAP 41%'},{from:2,to:5,color:'#f59e0b',width:2,label:'MAP 23%'},{from:3,to:7,color:'#22d3ee',width:2,label:'KCl 31%'},{from:4,to:5},{from:5,to:9},{from:7,to:9},{from:6,to:8},{from:8,to:12},{from:9,to:10},{from:10,to:11},{from:9,to:11}]);
+const net=new vis.Network(document.getElementById('graph'),{nodes,edges},{nodes:{shape:'dot',size:16,font:{color:'#e8eef8',size:11,multi:true},borderWidth:2},groups:{forn:{color:{background:'#0e7490',border:'#22d3ee'}},mina:{color:{background:'#3f6212',border:'#84cc16'}},planta:{color:{background:'#1d4ed8',border:'#60a5fa'}},term:{color:{background:'#b45309',border:'#f59e0b'}},mist:{color:{background:'#6d28d9',border:'#a78bfa'}},cd:{color:{background:'#334155',border:'#94a3b8'}},cli:{color:{background:'#15803d',border:'#4ade80'}}},edges:{color:{color:'#3e5378'},font:{color:'#8ea3c0',size:9,strokeWidth:0},arrows:'to',smooth:true},physics:{stabilization:true,barnesHut:{gravitationalConstant:-2600}}});
+net.on('click',p=>{if(!p.nodes.length)return;const n=nodes.get(p.nodes[0]);
+document.getElementById('nodecard').innerHTML='<b>'+n.label.replace(/\n/g,' ')+'</b> — nó da cadeia selecionado.<br><span class="small-mut">A montante: '+edges.get().filter(e=>e.to===n.id).length+' vínculo(s) · a jusante: '+edges.get().filter(e=>e.from===n.id).length+' vínculo(s)</span><div style="margin-top:8px;display:flex;gap:6px">'+(n.aid?'<button class="btn sm" onclick="openAtivo(\''+n.aid+'\')">Ficha 360°</button>':'')+'<button class="btn sm ghost" onclick="toast(\'Simulação enfileirada\',\'Agente de Cenários processará impacto da indisponibilidade deste nó.\',\'cy\')">Simular indisponibilidade</button></div>'});
+};
+
+/* ---- EMPRESAS & ATIVOS ---- */
+VIEWS.ativos=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Empresas & Ativos Produtivos</h1><div class="sub">Cadastro mestre · 1.284 ativos conciliados · 14 pendências de unificação</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Upload documental','Envie licenças, laudos e certificados — extração automática com IA (simulado).','cy')">📎 Upload documental</button><button class="btn" onclick="toast('Cadastro de ativo','Formulário de cadastro mestre aberto (simulado).','grn')">+ Novo ativo</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Ativos críticos","112","score ≥ 80","dn")}${kpi("Capacidade instalada NPK","13,9 Mt/ano","utilização média 78%","nt")}${kpi("Conformidade documental","91%","▲ 2 p.p.","up")}${kpi("Registros a conciliar","14","Agente de Conciliação","nt")}
+</div>
+<div class="card"><h3>🏭 Inventário de ativos — clique para abrir a Ficha 360°</h3>
+<table><tr><th>ID</th><th>Ativo</th><th>Tipo</th><th>UF</th><th>Status</th><th>Utilização</th><th>Criticidade</th><th>Risco</th></tr>
+${ATIVOS.map(a=>'<tr class="click" onclick="openAtivo(\''+a.id+'\')"><td class="small-mut">'+a.id+'</td><td><b>'+a.nome+'</b></td><td>'+a.tipo+'</td><td>'+a.uf+'</td><td><span class="tag '+(a.status==='Operacional'?'t-grn':a.status==='Congestionado'||a.status==='Operação parcial'?'t-org':'t-blu')+'">'+a.status+'</span></td><td><div class="bar"><i style="width:'+a.util+'%;background:'+barc(a.util)+'"></i></div><span class="small-mut">'+a.util+'%</span></td><td><b>'+a.crit+'</b>/100</td><td><span class="tag '+riskTag(a.risco)+'">'+a.risco+'</span></td></tr>').join('')}
+</table></div>`;
+};
+
+function openAtivo(id){const a=ATIVOS.find(x=>x.id===id);if(!a)return;
+document.getElementById('drh').innerHTML='<div><b style="font-size:15px">'+a.nome+'</b><div class="small-mut">'+a.id+' · '+a.tipo+' · '+a.cid+'/'+a.uf+' · <span class="tag '+riskTag(a.risco)+'">Risco '+a.risco+'</span> · criticidade '+a.crit+'/100</div></div><span class="x" onclick="closeDrawer()">✕</span>';
+document.getElementById('drb').innerHTML=`
+<div class="tabs">${["Identidade","Produção","Vínculos","Risco","ESG","Documentos","Histórico"].map((t,i)=>'<div class="tab'+(i===0?' on':'')+'" onclick="[...this.parentNode.children].forEach(c=>c.classList.remove(\'on\'));this.classList.add(\'on\')">'+t+'</div>').join('')}</div>
+<div id="fichamap" class="map" style="height:170px;margin-bottom:14px"></div>
+<dl class="kv"><dt>CNPJ</dt><dd>${a.cnpj}</dd><dt>Status operacional</dt><dd>${a.status}</dd><dt>Capacidade</dt><dd>${a.cap}</dd><dt>Utilização</dt><dd>${a.util}%</dd><dt>Produtos</dt><dd>${a.produtos}</dd><dt>Insumos</dt><dd>${a.insumos}</dd><dt>Empregos diretos</dt><dd>${a.emprego.toLocaleString('pt-BR')}</dd><dt>Energia</dt><dd>${a.energia}</dd><dt>Score ESG</dt><dd>${a.esg}/100</dd><dt>Dependência</dt><dd>${a.dep}</dd></dl>
+<div class="card" style="margin-bottom:12px"><h3>🕒 Timeline do ativo</h3><div class="tl">
+<div class="tl-it red"><b>Alerta de dependência vinculado (AL-1041)</b><small>hoje 14:22</small></div>
+<div class="tl-it org"><b>Atualização cadastral: capacidade revisada</b><small>02/07/2026 · analista D. Nunes</small></div>
+<div class="tl-it grn"><b>Vistoria concluída — conformidade OK</b><small>14/06/2026 · OS-0752</small></div>
+<div class="tl-it"><b>Licença de operação renovada</b><small>28/03/2026</small></div></div></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn sm" onclick="toast('Despacho criado','Minuta vinculada ao ativo '+ '${a.id}' +' gerada pelo Agente de Despacho.','grn')">📝 Gerar despacho</button>
+<button class="btn sm org" onclick="toast('Vistoria solicitada','OS enviada à fila de Fiscalização & Campo.','org')">📋 Abrir vistoria</button>
+<button class="btn sm ghost" onclick="toast('Simulação','Agente de Cenários avaliará parada de 30 dias deste ativo.','cy')">🧪 Simular parada</button>
+<button class="btn sm ghost" onclick="toast('Observação registrada','Anotação técnica adicionada ao histórico.','cy')">💬 Registrar observação</button></div>`;
+document.getElementById('ovl').style.display='block';document.getElementById('drawer').classList.add('open');
+setTimeout(()=>{const fm=L.map('fichamap',{zoomControl:false,attributionControl:false}).setView([a.lat,a.lng],6);darkTiles(fm);L.circleMarker([a.lat,a.lng],dot(riskColor(a.risco),10)).addTo(fm);maps.push(fm)},250)}
+function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('ovl').style.display='none'}
+
+/* ---- COMEX ---- */
+VIEWS.comex=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Comércio Exterior & Fluxos</h1><div class="sub">Fonte: Comex Stat + AIS marítimo (integração simulada) · NCM da cadeia de fertilizantes</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Simulação tarifária','Parametrize choque de tarifa/rota — resultado em ~40s pelo Agente de Cenários.','cy')">🧪 Simular ruptura tarifária</button><button class="btn" onclick="toast('Relatório gerado','Relatório de dependência externa exportado (PDF simulado).','grn')">📄 Relatório de dependência</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Importações 12m","US$ 9,34 bi","▼ 4,1% a/a","up")}${kpi("Exposição externa NPK","76%","meta PND: 55% até 2030","dn")}${kpi("Países de origem","23","Top-2 = 48% do valor","dn")}${kpi("Navios em rota (AIS)","37","2 com atraso > 5 dias","nt")}
+</div>
+<div class="grid g2" style="margin-bottom:14px">
+ <div class="card"><h3>🚢 Mapa de rotas e origens</h3><div id="cxmap" class="map" style="height:300px"></div></div>
+ <div class="card"><h3>📊 Importação por origem — 12 meses (US$ bi)</h3><div style="height:300px"><canvas id="cx1"></canvas></div></div>
+</div>
+<div class="grid g2">
+ <div class="card"><h3>🧪 Sensibilidade a ruptura — por NCM</h3>
+ <table><tr><th>NCM / Produto</th><th>Dependência</th><th>Valor 12m</th><th>Concentração</th><th></th></tr>
+ ${NCM.map(n=>'<tr class="click"><td><b>'+n.n+'</b></td><td><div class="bar"><i style="width:'+n.dep+'%;background:'+barc(n.dep)+'"></i></div><span class="small-mut">'+n.dep+'%</span></td><td>'+n.v+'</td><td class="small-mut">'+n.orig+'</td><td><button class="btn sm ghost" onclick="toast(\'Simulação de ruptura\',\'Impacto estimado sendo calculado para '+n.n+'…\',\'cy\')">Simular</button></td></tr>').join('')}</table></div>
+ <div class="card"><h3>📈 Série temporal — balança da cadeia (US$ bi/mês)</h3><div style="height:260px"><canvas id="cx2"></canvas></div></div>
+</div>`;
+const m=makeMap('cxmap',[15,-15],2);
+FORN.forEach(f=>L.circleMarker([f.lat,f.lng],dot(f.risco==='Crítico'?'#ef4444':'#22d3ee',7)).addTo(m).bindTooltip('<b>'+f.nome+'</b><br>'+f.insumo+' · '+f.share+'%'));
+[[-25.5,-48.5],[-2.57,-44.37],[-23.9,-46.3]].forEach(p=>L.circleMarker(p,dot('#f59e0b',7)).addTo(m));
+FORN.forEach(f=>L.polyline([[f.lat,f.lng],[-25.5+Math.random()*10,-47]],{color:f.risco==='Crítico'?'#ef4444':'#3b82f6',weight:1.6,dashArray:'5 8',opacity:.6}).addTo(m));
+charts.push(new Chart(document.getElementById('cx1'),{type:'bar',data:{labels:['Rússia','Canadá','China','Marrocos','Catar','Outros'],datasets:[{data:[2.9,1.6,1.3,0.9,0.8,1.84],backgroundColor:['#ef4444','#3b82f6','#f59e0b','#22d3ee','#a78bfa','#475569']}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#c3d0e5'},grid:{display:false}},y:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+charts.push(new Chart(document.getElementById('cx2'),{type:'line',data:{labels:['ago','set','out','nov','dez','jan','fev','mar','abr','mai','jun','jul'],datasets:[{label:'Importação',data:[.81,.92,1.0,.87,.7,.62,.68,.83,.95,1.0,.92,.84],borderColor:'#3b82f6',tension:.35},{label:'Exportação (cadeia)',data:[.12,.13,.12,.14,.15,.14,.13,.15,.16,.17,.16,.18],borderColor:'#22c55e',tension:.35}]},options:{plugins:{legend:{labels:{color:'#c3d0e5'}}},scales:{x:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+};
+
+/* ---- LOGÍSTICA ---- */
+VIEWS.log=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Logística & Infraestrutura</h1><div class="sub">Corredores, terminais, utilidades e prontidão territorial · integrações: EPE, Infra S.A., portos</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Análise locacional','Site suitability: informe elo, insumo e restrições — o motor GIS ranqueia municípios (simulado).','cy')">📍 Análise locacional</button><button class="btn" onclick="toast('Restrição registrada','Nova restrição logística cadastrada e propagada ao gêmeo.','grn')">+ Cadastrar restrição</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Fila média portos (fertilizantes)","6,8 dias","Paranaguá: 9,4 dias","dn")}${kpi("Custo médio rota Báltico→Sul","US$ 48/t","▲ 14% em 30 dias","dn")}${kpi("Prontidão Corredor Norte","72/100","▲ 5 pts (obra Itaqui)","up")}${kpi("Gargalos ativos","9","3 severos","nt")}
+</div>
+<div class="grid" style="grid-template-columns:1.5fr 1fr;margin-bottom:14px">
+ <div class="card"><h3>🛣️ Mapa logístico — corredores e terminais</h3><div id="logmap" class="map" style="height:330px"></div>
+ <div class="legend"><span style="color:#3b82f6">━ ferrovia</span><span style="color:#f59e0b">━ rodovia crítica</span><span><i style="background:#f59e0b"></i>terminal</span><span><i style="background:#ef4444"></i>gargalo severo</span></div></div>
+ <div class="card"><h3>🕸️ Radar de prontidão logística por corredor</h3><div style="height:330px"><canvas id="lg1"></canvas></div></div>
+</div>
+<div class="card"><h3>⛔ Ranking de gargalos por território</h3>
+<table><tr><th>#</th><th>Gargalo</th><th>Corredor</th><th>Impacto (custo/tempo)</th><th>Severidade</th><th></th></tr>
+${[["1","Fila de atracação TUP Paranaguá","Sul","+US$ 11/t · +9,4 dias","t-red","Severo"],["2","Acesso ferroviário único ao porto","Sul","risco de parada total","t-red","Severo"],["3","Trecho BR-163 sem duplicação (Nova Mutum)","Centro-Norte","+7% frete rodoviário","t-red","Severo"],["4","Calado limitado Itaqui berço 103","Norte","navios até 55 kt","t-org","Alto"],["5","Oferta de gás p/ FAFEN-SE","Nordeste","custo +22% vs ref. global","t-org","Alto"]].map(r=>'<tr class="click"><td>'+r[0]+'</td><td><b>'+r[1]+'</b></td><td>'+r[2]+'</td><td>'+r[3]+'</td><td><span class="tag '+r[4]+'">'+r[5]+'</span></td><td><button class="btn sm ghost" onclick="toast(\'Caso aberto\',\'Gargalo encaminhado a Workflows & Despachos.\',\'org\')">Abrir caso</button></td></tr>').join('')}</table></div>`;
+const m=makeMap('logmap',[-16,-50],4);plotAtivos(m,false);
+L.polyline([[-25.51,-48.51],[-24.95,-53.46],[-17.79,-50.92]],{color:'#3b82f6',weight:3,opacity:.85}).addTo(m).bindTooltip('Ferrovia + intermodal Sul→CO');
+L.polyline([[-2.57,-44.37],[-9.5,-49],[-15.6,-56.1]],{color:'#3b82f6',weight:3,opacity:.85,dashArray:'2 6'}).addTo(m).bindTooltip('Corredor Norte (Itaqui)');
+L.polyline([[-13,-55.9],[-11.8,-55.5],[-9.9,-56.1]],{color:'#f59e0b',weight:3}).addTo(m).bindTooltip('BR-163 — trecho crítico');
+L.circleMarker([-25.51,-48.51],dot('#ef4444',11)).addTo(m).bindTooltip('<b>Gargalo severo</b> — TUP Paranaguá');
+charts.push(new Chart(document.getElementById('lg1'),{type:'radar',data:{labels:['Capacidade portuária','Ferrovia','Rodovia','Energia','Gás','Armazenagem','Conectividade'],datasets:[{label:'Corredor Sul',data:[62,55,70,84,78,66,80],borderColor:'#f59e0b',backgroundColor:'#f59e0b22'},{label:'Corredor Norte',data:[71,64,58,76,52,74,63],borderColor:'#22d3ee',backgroundColor:'#22d3ee22'}]},options:{plugins:{legend:{labels:{color:'#c3d0e5'}}},scales:{r:{angleLines:{color:'#26344f'},grid:{color:'#26344f'},pointLabels:{color:'#8ea3c0',font:{size:10}},ticks:{display:false},min:0,max:100}},maintainAspectRatio:false}}));
+};
+
+/* ---- INVESTIMENTOS ---- */
+VIEWS.inv=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Investimentos & Projetos</h1><div class="sub">Carteira estruturante da cadeia · CAPEX total R$ 18,5 bi · fonte: Monitor de Investimentos + BNDES/Finep (simulado)</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Agente de Priorização','Ranking multicritério recalculado: Autazes ↑, ferrovia Paranaguá ↑.','cy')">🤖 Re-priorizar carteira</button><button class="btn" onclick="toast('Projeto cadastrado','Ficha criada e enviada à conciliação empresa↔ativo.','grn')">+ Novo projeto</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Projetos na carteira","6 estruturantes","+ 48 associados","up")}${kpi("CAPEX total","R$ 18,5 bi","62% privado","up")}${kpi("Projetos com gargalo","3","2 críticos","dn")}${kpi("Empregos previstos","~9,3 mil","na implantação","up")}
+</div>
+<div class="grid g2" style="margin-bottom:14px">
+ <div class="card"><h3>🔻 Funil do pipeline (nº de projetos)</h3><div style="height:240px"><canvas id="iv1"></canvas></div></div>
+ <div class="card"><h3>💠 CAPEX × impacto na dependência externa</h3><div style="height:240px"><canvas id="iv2"></canvas></div></div>
+</div>
+<div class="card" style="margin-bottom:14px"><h3>📋 Carteira — status semafórico</h3>
+<table><tr><th>ID</th><th>Projeto</th><th>UF</th><th>Fase</th><th>CAPEX</th><th>Avanço</th><th>Prazo</th><th>Status</th><th></th></tr>
+${PROJ.map(p=>'<tr class="click"><td class="small-mut">'+p.id+'</td><td><b>'+p.nome+'</b><br><span class="small-mut">'+p.emp+' · '+p.fonte+'</span></td><td>'+p.uf+'</td><td>'+p.fase+'</td><td>'+money(p.capex)+'</td><td><div class="bar"><i style="width:'+p.av+'%;background:'+(p.sem==='red'?'var(--red)':p.sem==='org'?'var(--orange)':'var(--green)')+'"></i></div><span class="small-mut">'+p.av+'%</span></td><td>'+p.prazo+'</td><td><span class="tag '+(p.sem==='red'?'t-red':p.sem==='org'?'t-org':'t-grn')+'">'+(p.sem==='red'?'● Crítico':p.sem==='org'?'● Atenção':'● No prazo')+'</span></td><td><button class="btn sm ghost" onclick="toast(\'Despacho gerado\',\'Minuta de encaminhamento do '+p.id+' criada pelo Agente de Despacho.\',\'grn\')">Despachar</button></td></tr>').join('')}</table></div>
+<div class="card"><h3>📆 Cronograma da carteira (Gantt 2026–2029)</h3><div class="gantt">
+${PROJ.map(p=>'<div class="grow"><div><b>'+p.nome.split('—')[0]+'</b><div class="small-mut">'+p.fase+'</div></div><div class="gtrack"><div class="gbar" style="left:'+p.ini+'%;width:'+p.dur+'%;background:'+(p.sem==='red'?'var(--red)':p.sem==='org'?'var(--orange)':'var(--green)')+'">'+p.av+'%</div></div></div>').join('')}
+<div class="grow" style="border:none"><div></div><div style="display:flex;justify-content:space-between;color:var(--mut);font-size:10px"><span>2026</span><span>2027</span><span>2028</span><span>2029</span></div></div></div></div>`;
+charts.push(new Chart(document.getElementById('iv1'),{type:'bar',data:{labels:['Prospecção','Viabilidade','Licenciamento','Contratação','Obras','Operação'],datasets:[{data:[54,31,14,9,6,3],backgroundColor:['#334155','#3b82f6','#22d3ee','#a78bfa','#f59e0b','#22c55e']}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{ticks:{color:'#c3d0e5'},grid:{display:false}}},maintainAspectRatio:false}}));
+charts.push(new Chart(document.getElementById('iv2'),{type:'bubble',data:{datasets:PROJ.map(p=>({label:p.id,data:[{x:p.capex/1000,y:p.sem==='red'?9:p.sem==='org'?6:3,r:6+p.capex/900}],backgroundColor:p.sem==='red'?'#ef4444aa':p.sem==='org'?'#f59e0baa':'#22c55eaa'}))},options:{plugins:{legend:{labels:{color:'#c3d0e5',boxWidth:8}}},scales:{x:{title:{display:true,text:'CAPEX (R$ bi)',color:'#8ea3c0'},ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{title:{display:true,text:'Redução de dependência (pts)',color:'#8ea3c0'},ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+};
+
+/* ---- RISCOS ---- */
+VIEWS.risco=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Torre de Riscos, Alertas & Inconsistências</h1><div class="sub">Central de detecção e tratamento · score agregado da cadeia: <b style="color:var(--red)">68/100 (ALTO)</b></div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Regras de risco','Editor de thresholds e regras aberto (simulado).','cy')">⚙️ Regras & thresholds</button><button class="btn red" onclick="abrirCaso('Novo caso manual','Risco identificado pelo analista')">+ Abrir caso</button></div></div>
+<div class="grid" style="grid-template-columns:1fr 1.4fr 1fr;margin-bottom:14px">
+ <div class="card"><h3>🎯 Matriz de risco (probabilidade × impacto)</h3><div class="matrix" id="mx"></div><div class="small-mut" style="margin-top:8px">Células mostram nº de riscos ativos. Clique para filtrar.</div></div>
+ <div class="card"><h3>🌡️ Hotspots territoriais</h3><div id="rmap" class="map" style="height:290px"></div></div>
+ <div class="card"><h3>📉 Score por dimensão</h3><div style="height:290px"><canvas id="rk1"></canvas></div></div>
+</div>
+<div class="card"><h3>🔔 Central de alertas <span class="r">exibindo ${ALERTAS.length} de 31</span></h3>
+<div id="alertfull">${ALERTAS.map(a=>'<div class="alert-it"><span class="sev '+sevClass(a.sev)+'"></span><div style="flex:1"><b>'+a.t+'</b><small>'+a.id+' · '+a.o+' · '+a.tm+'</small></div><span class="tag t-gry">'+a.st+'</span><button class="btn sm" onclick="abrirCaso(\''+a.id+'\',\''+a.t.replace(/'/g,"")+'\')">Abrir caso</button><button class="btn sm ghost" onclick="toast(\'Alerta '+a.id+'\',\'Justificativa do agente + evidências exibidas (simulado).\',\'cy\')">Detalhes</button></div>').join('')}</div></div>`;
+const probs=[["5",[0,1,1,2,1]],["4",[0,1,2,1,1]],["3",[1,2,3,1,0]],["2",[2,3,2,0,0]],["1",[3,2,1,0,0]]];
+const cols=['#22c55e','#84cc16','#eab308','#f59e0b','#ef4444'];
+document.getElementById('mx').innerHTML=probs.map(([p,row])=>'<div class="mxl">P'+p+'</div>'+row.map((v,i)=>{const lvl=Math.min(4,Math.round((+p+i)/2));return '<div class="mx" style="background:'+cols[Math.min(4,(+p-1+i+1)>>1)]+(v?'' :'33')+'" onclick="toast(\'Filtro aplicado\',\'Exibindo riscos P'+p+' × I'+(i+1)+'.\',\'cy\')">'+(v||'')+'</div>'}).join(''))
+.join('')+'<div class="mxl"></div>'+[1,2,3,4,5].map(i=>'<div class="mxl">I'+i+'</div>').join('');
+const m=makeMap('rmap',[-16,-50],4);
+[[-25.51,-48.51,28,'TUP Paranaguá — fila'],[-19.75,-47.93,22,'Uberaba — dependência MAP'],[-17.79,-50.92,16,'Rio Verde — inconsistência'],[-3.58,-59.13,18,'Autazes — atraso'],[-10.8,-37.17,12,'FAFEN-SE — custo gás']].forEach(h=>L.circleMarker([h[0],h[1]],{radius:h[2],fillColor:'#ef4444',fillOpacity:.28,color:'#ef4444',weight:1}).addTo(m).bindTooltip(h[3]));
+plotAtivos(m,false);
+charts.push(new Chart(document.getElementById('rk1'),{type:'bar',data:{labels:['Ruptura','Logístico','Regulatório','Climático','Cadastral','Cyber/Dados'],datasets:[{data:[84,79,58,46,41,33],backgroundColor:['#ef4444','#ef4444','#f59e0b','#eab308','#84cc16','#22c55e']}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}},y:{ticks:{color:'#c3d0e5'},grid:{display:false}}},maintainAspectRatio:false}}));
+};
+function abrirCaso(id,t){toast('Caso aberto no workflow','Origem: '+id+' — “'+t+'”. Agente de Despacho preparando minuta…','org');setTimeout(()=>toast('Minuta pronta','Despacho assistido disponível em Workflows & Despachos.','grn'),1800)}
+
+/* ---- FISCALIZAÇÃO ---- */
+VIEWS.fisc=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Fiscalização & Campo</h1><div class="sub">Ordens de serviço, vistorias e evidências · app de campo sincronizado (offline-first)</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Rota otimizada','Agente de Vistoria recalculou rotas da semana: -3h40 de deslocamento.','cy')">🧭 Otimizar rotas</button><button class="btn" onclick="toast('OS criada','Nova ordem de serviço registrada e atribuída.','grn')">+ Nova OS</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("OS no mês","23","5 em campo hoje","nt")}${kpi("Pareceres pendentes","4","1 vencendo hoje","dn")}${kpi("Aderência média (declarado × observado)","87%","▲ 2 p.p.","up")}${kpi("Evidências coletadas","318","fotos, laudos, sensores","up")}
+</div>
+<div class="grid" style="grid-template-columns:1.5fr 1fr;margin-bottom:14px">
+ <div class="card"><h3>📋 Fila de ordens de serviço</h3>
+ <table><tr><th>OS</th><th>Ativo</th><th>Tipo</th><th>Data</th><th>Inspetor</th><th>Origem</th><th>Status</th></tr>
+ ${OS.map(o=>'<tr class="click" onclick="toast(\'OS '+o.id+'\',\'Detalhe da OS: checklist, rota, documentos exigidos e evidências (simulado).\',\'cy\')"><td class="small-mut">'+o.id+'</td><td><b>'+o.ativo+'</b></td><td>'+o.tipo+'</td><td>'+o.data+'</td><td>'+o.insp+'</td><td><span class="tag '+(o.sug==='Manual'?'t-gry':'t-pur')+'">'+o.sug+'</span></td><td><span class="tag '+(o.st==='Concluída'?'t-grn':o.st==='Em campo'?'t-blu':o.st==='Parecer pendente'?'t-org':'t-gry')+'">'+o.st+'</span></td></tr>').join('')}</table></div>
+ <div class="card"><h3>🗺️ Mapa de vistorias da semana</h3><div id="fmap" class="map" style="height:280px"></div></div>
+</div>
+<div class="grid g2">
+ <div class="card"><h3>✅ Checklist dinâmico — OS-0771 · Misturadora Rio Verde <span class="tag t-pur" style="margin-left:6px">gerado por IA</span></h3>
+ ${[["Conferência de capacidade nominal das linhas de blendagem",0],["Registro fotográfico dos silos (georreferenciado)",0],["Leitura de medidores de energia (últimos 90 dias)",0],["Notas fiscais de insumos × volume declarado",0],["Entrevista com responsável técnico",0],["Verificação de licenças e ART vigentes",1]].map(c=>'<div class="checkitem"><input type="checkbox" '+(c[1]?'checked':'')+'><div>'+c[0]+'</div></div>').join('')}
+ <div style="margin-top:10px;display:flex;gap:8px"><button class="btn sm" onclick="toast('Checklist aprovado','Enviado ao app de campo do inspetor R. Almeida.','grn')">Aprovar & enviar</button><button class="btn sm ghost">Editar itens</button></div></div>
+ <div class="card"><h3>📝 Parecer preliminar — OS-0769 · Planta Uberaba <span class="tag t-pur" style="margin-left:6px">rascunho do agente</span></h3>
+ <div class="agrec" style="line-height:1.7">Vistoria realizada em 14/07/2026. Evidências fotográficas e leituras de sensores <b>compatíveis com a capacidade declarada</b> (desvio de 2,1%, dentro da tolerância). Documentação ambiental vigente. Recomenda-se <b>encerramento do alerta associado</b> e atualização do score de conformidade do ativo para 94/100.</div>
+ <div style="display:flex;gap:8px"><button class="btn sm grn" onclick="toast('Parecer assinado','Alerta encerrado; painel executivo atualizado — ciclo completo.','grn')">Assinar parecer</button><button class="btn sm org">Solicitar complemento</button><button class="btn sm ghost">Ver evidências (14)</button></div></div>
+</div>`;
+const m=makeMap('fmap',[-19,-50],5);
+[[ATIVOS[4],'OS-0771 · Agendada','#f59e0b'],[ATIVOS[3],'OS-0770 · Em campo','#3b82f6'],[ATIVOS[0],'OS-0769 · Parecer pendente','#f59e0b'],[ATIVOS[6],'OS-0767 · Concluída','#22c55e']].forEach(([a,l,c])=>L.circleMarker([a.lat,a.lng],dot(c,9)).addTo(m).bindTooltip('<b>'+l+'</b><br>'+a.nome));
+L.polyline([[ATIVOS[4].lat,ATIVOS[4].lng],[ATIVOS[6].lat,ATIVOS[6].lng],[ATIVOS[3].lat,ATIVOS[3].lng]],{color:'#22d3ee',weight:2,dashArray:'4 7'}).addTo(m).bindTooltip('Rota otimizada da equipe');
+};
+
+/* ---- WORKFLOWS ---- */
+VIEWS.wf=function(){
+const cols=["Novos","Em análise","Em execução","Concluídos"];
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Workflows & Despachos</h1><div class="sub">Orquestração de casos · SLA médio 3,2 dias · trilha de auditoria completa</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Relatório SLA','Backlog, aging e produtividade exportados (simulado).','cy')">📊 Relatório de SLA</button><button class="btn" onclick="abrirCaso('Manual','Caso criado pelo analista')">+ Abrir caso</button></div></div>
+<div class="grid g4" style="margin-bottom:14px">
+ ${kpi("Casos ativos","23","6 nesta unidade","nt")}${kpi("Cumprimento de SLA","92%","meta 90%","up")}${kpi("Aging médio","3,2 dias","▼ 0,8 dia","up")}${kpi("Despachos assistidos por IA","57","89% aprovados sem edição","up")}
+</div>
+<div class="kanban" style="margin-bottom:14px" id="kb">
+${cols.map((c,i)=>'<div class="kcol"><h4>'+c+'<span>'+CASOS.filter(k=>k.col===i).length+'</span></h4>'+CASOS.filter(k=>k.col===i).map(k=>'<div class="kcard" onclick="openCaso(\''+k.id+'\')"><b>'+k.id+' · '+k.t+'</b><small>'+k.tipo+' · SLA '+k.sla+'</small><div class="kfoot"><span class="av">'+k.resp.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()+'</span><small>'+k.resp+'</small><span class="tag '+(k.pri==='Crítica'?'t-red':k.pri==='Alta'?'t-org':'t-gry')+'" style="margin-left:auto">'+k.pri+'</span></div><div class="kfoot"><span class="tag t-pur">🤖 '+k.ag+'</span></div></div>').join('')+'</div>').join('')}
+</div>
+<div class="grid g2">
+ <div class="card"><h3>📝 Despacho assistido — WF-2027 <span class="tag t-red" style="margin-left:6px">prioridade crítica</span></h3>
+ <div class="agrec" style="line-height:1.75"><b>MINUTA DE DESPACHO Nº 214/2026 — SDIC</b><br>
+ <b>Assunto:</b> mitigação de risco de ruptura no suprimento de MAP.<br>
+ <b>Fatos:</b> concentração de 82% das importações em duas origens; sinal de interrupção de embarques do fornecedor primário (AL-1041); impacto recalculado: −18% da oferta em 60 dias.<br>
+ <b>Providências sugeridas:</b> (i) acionar analista de comércio exterior para contratação spot junto a OCP/Ma'aden; (ii) redirecionar 30% dos volumes ao Corredor Norte (Itaqui); (iii) priorizar o projeto PJ-101 (Expansão MAP Uberaba) no comitê de investimentos.<br>
+ <b>Responsáveis:</b> C. Prado (Comex) · J. Ferreira (Projetos). <b>Prazo:</b> 48h. <b>Risco residual estimado:</b> Médio (54/100).</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap">
+ <button class="btn sm grn" onclick="toast('Despacho aprovado ✔','Encaminhado aos responsáveis. Trilha de auditoria registrada; painel executivo atualizado.','grn');document.getElementById('pill-wf').textContent='5'">✔ Aprovar e encaminhar</button>
+ <button class="btn sm org">✎ Editar minuta</button><button class="btn sm ghost">Solicitar complemento</button><button class="btn sm ghost">Trilha de auditoria</button></div></div>
+ <div class="card"><h3>📈 Funil & aging</h3><div style="height:150px;margin-bottom:10px"><canvas id="wf1"></canvas></div>
+ <h3>🕒 Fluxo em tempo real — caso WF-2027</h3><div class="tl">
+ <div class="tl-it red"><b>1. Agente de Dependência detecta concentração 82%</b><small>14:22</small></div>
+ <div class="tl-it red"><b>2. Integração confirma ruptura de embarques → alerta vermelho</b><small>14:24</small></div>
+ <div class="tl-it org"><b>3. Impacto recalculado na cadeia (−18% oferta / 60d)</b><small>14:25</small></div>
+ <div class="tl-it org"><b>4. Caso WF-2027 aberto · responsável atribuído</b><small>14:26</small></div>
+ <div class="tl-it"><b>5. Agente de Despacho gera minuta com 3 providências</b><small>14:28</small></div>
+ <div class="tl-it grn"><b>6. Aguardando aprovação do gestor → painel executivo</b><small>agora</small></div></div></div>
+</div>`;
+charts.push(new Chart(document.getElementById('wf1'),{type:'bar',data:{labels:['0-2d','3-5d','6-10d','>10d'],datasets:[{label:'Casos por aging',data:[9,8,4,2],backgroundColor:['#22c55e','#3b82f6','#f59e0b','#ef4444']}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#c3d0e5'},grid:{display:false}},y:{ticks:{color:'#8ea3c0'},grid:{color:'#1f2b45'}}},maintainAspectRatio:false}}));
+};
+function openCaso(id){const k=CASOS.find(c=>c.id===id);toast('Caso '+id,k.t+' · Resp.: '+k.resp+' · SLA '+k.sla+' · agente: '+k.ag+' (detalhe simulado)','cy')}
+
+/* ---- AGENTES ---- */
+VIEWS.ag=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Agentes de IA — Orquestração Inteligente</h1><div class="sub">8 serviços vivos · 41,2 mil eventos/dia · governança: logs, guardrails e revisão humana obrigatória em decisões</div></div>
+<div class="acts"><button class="btn ghost" onclick="toast('Telemetria','Painel de custo, latência e acurácia dos agentes (simulado).','cy')">📡 Telemetria</button><button class="btn" onclick="toast('Cenário em execução','Agente de Cenários: “embargo Báltico 90 dias” — resultado em ~40s (simulado).','cy')">▶ Rodar cenário</button></div></div>
+<div class="grid g4" style="row-gap:14px">
+${AGENTES.map((a,i)=>'<div class="agcard"><span class="st '+(a.fila>6?'t-org':'t-grn')+'">'+(a.fila>6?'● fila alta':'● operando')+'</span><h4>'+a.n+'</h4><div class="fn">'+a.fn+'</div><div class="agstats"><div><b>'+(a.ev/1000).toFixed(1).replace('.',',')+'k</b><small>eventos</small></div><div><b>'+a.fila+'</b><small>na fila</small></div><div><b>'+a.tx+'%</b><small>acerto</small></div></div><div class="agrec">💡 '+a.rec+'</div><div style="display:flex;gap:6px"><button class="btn sm" onclick="toast(\''+a.n+'\',\'Detalhes: últimos casos, recomendações e desempenho (simulado).\',\'cy\')">Ver detalhes</button><button class="btn sm ghost" onclick="toast(\'Caso criado\',\'Recomendação do agente convertida em caso no workflow.\',\'org\')">Gerar caso</button></div></div>').join('')}
+</div>`;
+};
+
+/* ---- RELATÓRIOS ---- */
+VIEWS.rel=function(){
+const RELS=[["Relatório executivo da cadeia","semanal","hoje 06:00","Agente Executivo"],["Relatório de dependências críticas","mensal","01/07/2026","Agente de Dependência"],["Relatório de projetos prioritários","quinzenal","10/07/2026","Agente de Priorização"],["Relatório de gargalos logísticos","semanal","14/07/2026","Módulo Logística"],["Relatório de risco e inconsistências","semanal","15/07/2026","Torre de Riscos"],["Relatório de vistorias","mensal","01/07/2026","Fiscalização & Campo"],["Relatório ESG da cadeia","trimestral","01/07/2026","Sustentabilidade"],["Relatório de decisões / despachos","mensal","01/07/2026","Workflows"],["Boletim semanal automatizado","semanal","hoje 06:00","Agente Executivo"],["Dossiê da cadeia estratégica","sob demanda","22/06/2026","Multi-agente"]];
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Relatórios</h1><div class="sub">Biblioteca padrão + geração sob demanda com narrativa automatizada</div></div>
+<div class="acts"><button class="btn" onclick="toast('Dossiê em geração','Compilando mapas, grafos, scores e narrativas — pronto em ~2 min (simulado).','cy')">📚 Gerar dossiê completo</button></div></div>
+<div class="card"><table><tr><th>Relatório</th><th>Frequência</th><th>Última edição</th><th>Gerado por</th><th></th></tr>
+${RELS.map(r=>'<tr class="click"><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+r[2]+'</td><td><span class="tag t-pur">'+r[3]+'</span></td><td style="white-space:nowrap"><button class="btn sm ghost" onclick="toast(\'Visualizar\',\''+r[0]+' aberto no leitor (simulado).\',\'cy\')">Abrir</button> <button class="btn sm" onclick="toast(\'Exportado\',\''+r[0]+' — PDF assinado digitalmente (simulado).\',\'grn\')">PDF</button></td></tr>').join('')}
+</table></div>
+<div class="grid g2" style="margin-top:14px">
+<div class="card"><h3>📰 Prévia — Boletim semanal (16/07/2026)</h3><div class="agrec" style="line-height:1.75">Semana marcada pela <b>elevação do risco agregado (61→68)</b>. Destaques: (1) concentração de MAP atingiu limite crítico e gerou caso com prazo de 48h; (2) fila em Paranaguá segue acima de 9 dias — redirecionamento parcial ao Corredor Norte em avaliação; (3) retomada da FAFEN-SE alcançou 78% e deve reduzir a dependência de ureia em 4 p.p. até março; (4) carteira de investimentos re-priorizada pelo agente multicritério. 12 decisões tomadas, 100% com trilha de auditoria.</div></div>
+<div class="card"><h3>⚙️ Administração (atalhos)</h3>
+<div class="alert-it"><span class="sev s-blu"></span><div style="flex:1"><b>Perfis & permissões</b><small>10 perfis · RBAC por módulo e território</small></div><button class="btn sm ghost" onclick="go('adm')">Abrir</button></div>
+<div class="alert-it"><span class="sev s-blu"></span><div style="flex:1"><b>Integrações de dados</b><small>Comex Stat · CNPJ · Monitor de Investimentos · AIS · satélite · IoT</small></div><button class="btn sm ghost" onclick="go('adm')">Abrir</button></div>
+<div class="alert-it"><span class="sev s-blu"></span><div style="flex:1"><b>Auditoria & logs</b><small>todas as decisões rastreáveis · retenção 5 anos</small></div><button class="btn sm ghost" onclick="go('adm')">Abrir</button></div></div>
+</div>`;
+};
+
+/* ---- ADMIN ---- */
+VIEWS.adm=function(){
+document.getElementById('content').innerHTML=`
+<div class="pagehead"><div><h1>Administração da Plataforma</h1><div class="sub">Perfis, integrações, pipelines e saúde do sistema</div></div></div>
+<div class="grid g4" style="margin-bottom:14px">${kpi("Usuários ativos","412","10 perfis","up")}${kpi("Integrações","14","13 saudáveis · 1 degradada","nt")}${kpi("Pipelines ETL/stream","28","último ciclo 06:00 OK","up")}${kpi("Disponibilidade 30d","99,97%","SLA cumprido","up")}</div>
+<div class="grid g2">
+<div class="card"><h3>👥 Perfis de acesso</h3><table><tr><th>Perfil</th><th>Usuários</th><th>Escopo</th></tr>
+${[["Ministro / Alta Gestão","4","Visão executiva · decisão"],["Secretário / Diretor","11","Todos os módulos · aprovação"],["Analista de Cadeias","38","Gêmeo · riscos · workflows"],["Analista de Investimentos","24","Projetos · priorização"],["Analista de Comércio Exterior","19","Comex · cenários"],["Analista de Infra & Território","17","Logística · GIS"],["Analista ESG","9","Sustentabilidade"],["Equipe de Fiscalização","46","Campo · OS · evidências"],["Órgãos parceiros (leitura)","228","Painéis autorizados"],["Administrador","6","Configuração total"]].map(r=>'<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td class="small-mut">'+r[2]+'</td></tr>').join('')}</table></div>
+<div class="card"><h3>🔌 Integrações externas</h3>
+${[["Comex Stat","API REST · diário","grn"],["Cadastro CNPJ / Receita","batch · semanal","grn"],["Monitor de Investimentos","API REST · diário","grn"],["AIS marítimo","stream · tempo real","grn"],["Imagens de satélite","GIS service · sob demanda","grn"],["Dados energéticos (EPE/ONS)","API · diário","grn"],["Sensores & IoT plantas","MQTT stream","org"],["SEI / protocolo","webservice","grn"]].map(r=>'<div class="alert-it"><span class="sev '+(r[2]==='grn'?'s-blu':'s-org')+'"></span><div style="flex:1"><b>'+r[0]+'</b><small>'+r[1]+'</small></div><span class="tag '+(r[2]==='grn'?'t-grn':'t-org')+'">'+(r[2]==='grn'?'saudável':'degradada')+'</span></div>').join('')}</div>
+</div>`;
+};
+
+/* ================= ALERT DROPDOWN ================= */
+function toggleAlerts(){const d=document.getElementById('adrop');if(d.style.display==='block'){d.style.display='none';return}
+d.innerHTML='<div class="hd">🔔 Alertas ativos ('+ALERTAS.length+')</div><div style="padding:6px 12px">'+alertList(ALERTAS)+'</div><div style="padding:10px 14px"><button class="btn sm" style="width:100%" onclick="document.getElementById(\'adrop\').style.display=\'none\';go(\'risco\')">Abrir Torre de Riscos</button></div>';
+d.style.display='block'}
+document.addEventListener('click',e=>{const d=document.getElementById('adrop');if(d.style.display==='block'&&!d.contains(e.target)&&!e.target.closest('.tbtn'))d.style.display='none'});
+
+/* ================= COPILOT ================= */
+function toggleCopilot(){document.getElementById('copilot').classList.toggle('open')}
+const COPKB=[
+ [/risco|maior/i,"O maior risco hoje é a **ruptura de suprimento de MAP**: 82% das importações concentradas em 2 origens, com sinal de interrupção do fornecedor primário (AL-1041).\n\nImpacto estimado: −18% da oferta em 60 dias. O caso WF-2027 aguarda sua aprovação de despacho (prazo 48h). Deseja que eu abra o caso?"],
+ [/resumo|semana|executivo/i,"Resumo da semana:\n• Risco agregado subiu 61 → 68 (ALTO)\n• 7 alertas ativos (2 críticos)\n• FAFEN-SE: retomada em 78%\n• Fila Paranaguá: 9,4 dias\n• Carteira re-priorizada: Autazes e ferrovia Paranaguá subiram\n• 12 decisões tomadas, 100% auditáveis\n\nPosso gerar o boletim em PDF."],
+ [/alternativ|fornecedor|map/i,"Fornecedores alternativos de MAP viáveis (Agente de Dependência):\n1. OCP (Marrocos) — capacidade spot +400 kt, lead time 28 dias\n2. Ma'aden (Arábia Saudita) — +300 kt, lead time 32 dias\n3. Produção nacional: antecipação da Fase II de Uberaba (PJ-101) adiciona 180 kt/ano\n\nRecomendo combinar (1)+(2) e redirecionar 30% dos volumes via Itaqui."],
+ [/paranaguá|fila|porto/i,"TUP Paranaguá está com fila média de 9,4 dias (96% de utilização). O Agente de Cenários indica que redirecionar 30% dos volumes ao Corredor Norte (Itaqui) recupera 6 p.p. de oferta no Centro-Oeste, com custo adicional de US$ 3,10/t."],
+ [/autazes|potássio|kcl/i,"Projeto Autazes (PJ-102): CAPEX R$ 12,5 bi, avanço 34%, licenciamento com 45 dias de atraso (caso WF-2024 em execução). Quando operacional, reduz a dependência externa de KCl de 94% para ~72%."]];
+function askCop(q){q=(q||'').trim();if(!q)return;const b=document.getElementById('copbody');
+b.insertAdjacentHTML('beforeend','<div class="msg us">'+q.replace(/</g,'&lt;')+'</div>');document.getElementById('copin').value='';
+const hit=COPKB.find(([r])=>r.test(q));
+const ans=hit?hit[1]:"Analisei sua pergunta no contexto da cadeia de Fertilizantes. Com base no Knowledge Graph (1.284 ativos, 3.913 vínculos): não encontrei anomalia diretamente relacionada, mas posso detalhar riscos, projetos, fluxos de comércio exterior ou rodar um cenário. Experimente: “Qual o maior risco hoje?”";
+setTimeout(()=>{b.insertAdjacentHTML('beforeend','<div class="msg ai">'+ans.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')+'</div>');b.scrollTop=b.scrollHeight},600);b.scrollTop=b.scrollHeight}
+
+/* ================= SIMULAÇÃO DE RUPTURA (spec §14) ================= */
+let simDone=false;
+function runSimulation(){if(simDone){toast('Simulação já executada','Veja o caso WF-2031 no kanban e o alerta AL-1042 na Torre de Riscos.','cy');return}
+simDone=true;const seq=[
+ [0,'🤖 Agente de Dependência Crítica','Detectada alta concentração: fornecedor internacional responde por 41% do MAP.','cy'],
+ [1600,'🔌 Integração Comex/AIS','Nova informação: embarques suspensos pelo fornecedor primário por 60 dias.','org'],
+ [3200,'⚙️ Motor do gêmeo digital','Impacto recalculado na cadeia: −18% da oferta de MAP em 60 dias · 2 plantas e 14 misturadoras afetadas.','org'],
+ [4800,'🚨 Módulo de Risco','ALERTA VERMELHO AL-1042 gerado — risco de ruptura elevado a CRÍTICO.','red'],
+ [6400,'🔁 Workflow','Caso WF-2031 aberto automaticamente · responsável: M. Duarte · SLA 48h.','org'],
+ [8000,'📝 Agente de Despacho Assistido','Minuta sugerida: acionar analista Comex · avaliar OCP/Ma\'aden · priorizar projeto nacional PJ-101.','cy'],
+ [9600,'✔ Próximo passo humano','Gestor deve aprovar o encaminhamento em Workflows & Despachos. Painel executivo já reflete impacto, ação, prazo e risco residual.','grn']];
+seq.forEach(([t,a,b,c])=>setTimeout(()=>toast(a,b,c),t));
+setTimeout(()=>{ALERTAS.unshift({id:"AL-1042",sev:"red",t:"SIMULAÇÃO: ruptura de fornecedor crítico de MAP — impacto −18% em 60d",o:"Agente de Cenários",tm:"agora",st:"Aberto"});
+CASOS.unshift({id:"WF-2031",t:"SIMULAÇÃO: ruptura fornecedor MAP — resposta coordenada",tipo:"Risco de suprimento",resp:"M. Duarte",sla:"48h",pri:"Crítica",col:0,ag:"Despacho Assistido"});
+EVENTOS.unshift({c:"red",b:"Simulação de ruptura executada — caso WF-2031 aberto",s:"Agente de Cenários · agora"});
+document.getElementById('abadge').textContent='8';const p=document.getElementById('pill-risco');if(p)p.textContent='8';
+if(route==='home')go('home');if(route==='risco')go('risco');if(route==='wf')go('wf')},5200)}
+
+/* ================= BUSCA GLOBAL ================= */
+document.getElementById('gsearch').addEventListener('keydown',e=>{if(e.key!=='Enter')return;const q=e.target.value.toLowerCase();
+const a=ATIVOS.find(x=>x.nome.toLowerCase().includes(q)||x.id.toLowerCase()===q);
+if(a){openAtivo(a.id);return}
+if(q.startsWith('wf')){go('wf');toast('Busca','Exibindo workflows correspondentes a “'+q+'”.','cy');return}
+if(q.includes('map')||q.includes('ncm')||q.includes('310')){go('comex');toast('Busca','NCM/insumo localizado em Comércio Exterior.','cy');return}
+toast('Busca global','Nenhum resultado exato — mostrando sugestões no módulo atual (simulado).','cy')});
+
+renderNav();VIEWS.home();
+setTimeout(()=>toast('✨ Copiloto NIB','Bem-vinda, Marina. 2 decisões aguardam você (WF-2027 e WF-2024). Dica: use “Simular ruptura” na barra superior para ver o fluxo ponta a ponta.','cy'),1200);
+</script>
+</body></html>
