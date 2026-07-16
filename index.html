@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GeoComex Integrity | Centro de Comando</title>
+  <!-- ArcGIS Dark Theme CSS -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/dark/main.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Camada 0: O Mapa Base -->
+  <div id="viewDiv"></div>
+
+  <!-- Camada 1: Menu Lateral Esquerdo -->
+  <aside class="sidebar glass-panel">
+    <div class="logo">GeoComex</div>
+    <nav>
+      <div class="nav-item active">🌐 Centro de Comando</div>
+      <div class="nav-item">🚢 Rotas e Logística</div>
+      <div class="nav-item">🕸️ Redes Econômicas</div>
+      <div class="nav-item">🗂️ Gestão de Casos</div>
+      <div class="nav-item">📍 Diligências (Field)</div>
+    </nav>
+  </aside>
+
+  <!-- Camada 2: Top Bar e KPIs Executivos -->
+  <main class="main-content">
+    <header class="topbar glass-panel">
+      <input type="text" placeholder="Buscar CNPJ, NCM ou Operação..." class="search-bar">
+      <div class="topbar-actions">
+        <span class="copilot-btn">✨ IA Copiloto</span>
+        <span class="user-profile">Marlos (Admin)</span>
+      </div>
+    </header>
+
+    <div class="kpi-container">
+      <div class="kpi-card glass-panel">
+        <span class="kpi-title">🛡️ Índice de Ameaça (IARG)</span>
+        <span class="kpi-value" id="kpi-risk">74/100</span>
+      </div>
+      <div class="kpi-card glass-panel">
+        <span class="kpi-title">💰 Impacto Monitorado</span>
+        <span class="kpi-value">R$ 432,5 M</span>
+      </div>
+      <div class="kpi-card glass-panel alert-glow">
+        <span class="kpi-title">🔔 Alertas Críticos (Dia)</span>
+        <span class="kpi-value" id="kpi-alerts">18</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Camada 3: Painel Lateral Direito (Radar de Agentes) -->
+  <aside class="right-panel glass-panel">
+    <div class="panel-header">
+      <h3>Radar de Agentes (IA)</h3>
+      <span class="live-indicator">● LIVE</span>
+    </div>
+    <div class="feed-container" id="event-feed">
+      <!-- Eventos injetados via JS -->
+      <div class="event-card glass-panel">
+        <div class="event-header">
+          <span class="agent-name">⚙️ Agente de Preço</span>
+          <span class="time">Agora</span>
+        </div>
+        <p>Subfaturamento detectado em NCM 8541. Divergência de 34% da média histórica.</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Scripts -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
